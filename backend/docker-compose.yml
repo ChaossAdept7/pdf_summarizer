@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pdf-summarizer-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount uploads and temp directories for persistent storage
+      - ./uploads:/app/uploads
+      - ./temp:/app/temp
+    env_file:
+      - .env
+    environment:
+      # Override upload/temp directories to use container paths
+      - UPLOAD_DIR=/app/uploads
+      - TEMP_DIR=/app/temp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
