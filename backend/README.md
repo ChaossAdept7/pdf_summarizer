@@ -34,264 +34,6 @@ apk add poppler-utils
 
 ---
 
-## 🚀 Quick Start
-
-### 1. Clone the Repository
-
-```bash
-git clone <your-repo-url>
-cd backend
-```
-
-### 2. Set Up Virtual Environment
-
-```bash
-# Create virtual environment
-python3.11 -m venv venv
-
-# Activate virtual environment
-# On macOS/Linux:
-source venv/bin/activate
-
-# On Windows:
-venv\Scripts\activate
-```
-
-### 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Configure Secrets
-
-```bash
-# Copy the example file
-cp .env.example .env
-
-# Edit .env and add your OpenAI API key
-# OPENAI_API_KEY=sk-proj-your-actual-key-here
-```
-
-**Important:** Never commit your `.env` file to version control!
-
-### 5. Run the Application
-
-```bash
-# Start the development server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-The API will be available at:
-- **API:** http://localhost:8000
-- **Interactive Docs:** http://localhost:8000/docs
-- **ReDoc:** http://localhost:8000/redoc
-
----
-
-## 📡 API Endpoints
-
-### 1. Upload PDF for Processing
-
-Upload a PDF file and start async processing. Returns a task ID immediately.
-
-```bash
-curl -X POST http://localhost:8000/api/v1/upload \
-  -F "file=@/path/to/your/document.pdf"
-```
-
-**Response:**
-```json
-{
-  "task_id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "processing",
-  "message": "PDF uploaded successfully. Processing started."
-}
-```
-
-**Validation:**
-- Max file size: 50MB (52,428,800 bytes)
-- Max pages: 100
-- Allowed format: PDF only
-
-**Error Responses:**
-```json
-// File too large (413)
-{
-  "detail": "File too large (60000000 bytes). Maximum size is 52428800 bytes (50.0 MB)."
-}
-
-// Invalid file type (400)
-{
-  "detail": "Invalid file type. Allowed extensions: ['.pdf']"
-}
-```
-
----
-
-### 2. Check Processing Status
-
-Poll the status of a processing task using the task ID.
-
-```bash
-curl http://localhost:8000/api/v1/status/550e8400-e29b-41d4-a716-446655440000
-```
-
-**Response (Processing):**
-```json
-{
-  "task_id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "processing",
-  "progress": 45,
-  "result": null,
-  "error": null
-}
-```
-
-**Response (Completed):**
-```json
-{
-  "task_id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "completed",
-  "progress": 100,
-  "result": {
-    "filename": "document.pdf",
-    "summary": "This document discusses the implementation of a microservices architecture...",
-    "page_count": 25,
-    "file_size": 5242880,
-    "processed_at": "2025-12-15T14:30:00Z"
-  },
-  "error": null
-}
-```
-
-**Response (Failed):**
-```json
-{
-  "task_id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "failed",
-  "progress": 30,
-  "result": null,
-  "error": "PDF processing error: Corrupted PDF file"
-}
-```
-
-**Status Values:**
-- `processing` - Task is being processed (0-100% progress)
-- `completed` - Task completed successfully
-- `failed` - Task failed with error message
-
----
-
-### 3. Get Processing History
-
-Retrieve the last 5 processed documents.
-
-```bash
-curl http://localhost:8000/api/v1/history
-```
-
-**Response:**
-```json
-{
-  "documents": [
-    {
-      "filename": "quarterly-report.pdf",
-      "summary": "The quarterly report shows strong growth...",
-      "page_count": 45,
-      "file_size": 8388608,
-      "processed_at": "2025-12-15T14:30:00Z"
-    },
-    {
-      "filename": "meeting-notes.pdf",
-      "summary": "Meeting notes covering project updates...",
-      "page_count": 12,
-      "file_size": 2097152,
-      "processed_at": "2025-12-15T13:15:00Z"
-    }
-  ],
-  "total": 2
-}
-```
-
-**Note:** History is limited to the last 5 documents and sorted by most recent first.
-
----
-
-### 4. Health Check
-
-Check if the API is running and healthy.
-
-```bash
-curl http://localhost:8000/health
-```
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "version": "1.0.0",
-  "timestamp": "2025-12-15T14:30:00Z"
-}
-```
-
----
-
-### 5. Root Endpoint
-
-Get API information and links.
-
-```bash
-curl http://localhost:8000/
-```
-
-**Response:**
-```json
-{
-  "message": "PDF Summarizer API",
-  "version": "1.0.0",
-  "docs": "/docs",
-  "health": "/health"
-}
-```
-
----
-
-### Complete Workflow Example
-
-Here's a complete example workflow:
-
-```bash
-# 1. Upload a PDF
-RESPONSE=$(curl -s -X POST http://localhost:8000/api/v1/upload \
-  -F "file=@document.pdf")
-
-# 2. Extract task ID from response
-TASK_ID=$(echo $RESPONSE | grep -o '"task_id":"[^"]*' | cut -d'"' -f4)
-echo "Task ID: $TASK_ID"
-
-# 3. Poll status until completed (check every 5 seconds)
-while true; do
-  STATUS=$(curl -s http://localhost:8000/api/v1/status/$TASK_ID)
-  echo $STATUS | jq .
-
-  if echo $STATUS | grep -q '"status":"completed"'; then
-    echo "Processing completed!"
-    break
-  elif echo $STATUS | grep -q '"status":"failed"'; then
-    echo "Processing failed!"
-    break
-  fi
-
-  sleep 5
-done
-
-# 4. Check history
-curl http://localhost:8000/api/v1/history | jq .
-```
-
----
-
 ## 🐳 Docker Setup
 
 ### Prerequisites
@@ -398,6 +140,89 @@ docker-compose up --build --force-recreate
 
 ---
 
+## 🚀 Quick Start (Local Development)
+
+### 1. Clone the Repository
+
+```bash
+git clone <your-repo-url>
+cd backend
+```
+
+### 2. Set Up Virtual Environment
+
+```bash
+# Create virtual environment
+python3.11 -m venv venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+
+# On Windows:
+venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure Secrets
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and add your OpenAI API key
+# OPENAI_API_KEY=sk-proj-your-actual-key-here
+```
+
+**Important:** Never commit your `.env` file to version control!
+
+### 5. Run the Application
+
+```bash
+# Start the development server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The API will be available at:
+- **API:** http://localhost:8000
+- **Interactive Docs:** http://localhost:8000/docs
+- **ReDoc:** http://localhost:8000/redoc
+
+---
+
+## 📡 API Endpoints
+
+### Upload PDF for Processing
+```bash
+curl -X POST http://localhost:8000/api/v1/upload \
+  -F "file=@/path/to/your/document.pdf"
+```
+Returns a task ID for tracking. Max file size: 50MB, 100 pages, PDF only.
+
+### Check Processing Status
+```bash
+curl http://localhost:8000/api/v1/status/{task_id}
+```
+Returns status: `processing`, `completed`, or `failed` with progress percentage.
+
+### Get Processing History
+```bash
+curl http://localhost:8000/api/v1/history
+```
+Returns the last 5 processed documents.
+
+### Health Check
+```bash
+curl http://localhost:8000/health
+```
+
+---
+
 ## 🔧 Configuration
 
 ### Environment Variables (Secrets)
@@ -485,112 +310,3 @@ backend/
 5. **Sanitize filenames** - Automatic sanitization prevents path traversal
 
 ---
-
-## 🐛 Troubleshooting
-
-### "poppler not found" Error
-
-**Solution:** Install poppler-utils (see Prerequisites section)
-
-### "OpenAI API rate limit" Error
-
-**Solution:**
-- Check your OpenAI account limits
-- Add retry logic (future enhancement)
-- Consider using a different pricing tier
-
-### Port 8000 Already in Use
-
-**Solution:**
-```bash
-# Use a different port
-uvicorn app.main:app --reload --port 8080
-```
-
-### File Upload Fails
-
-**Solution:**
-- Check file size (max 50MB)
-- Verify file type is PDF
-- Ensure `uploads/` directory exists
-
----
-
-## 📚 API Documentation
-
-Once the server is running, visit:
-
-- **Swagger UI:** http://localhost:8000/docs
-- **ReDoc:** http://localhost:8000/redoc
-
-These provide interactive documentation where you can:
-- View all endpoints
-- See request/response schemas
-- Try API calls directly from the browser
-
----
-
-## 🛠️ Development
-
-### Project Status
-
-**Current Status:** Core application setup complete
-
-**Implemented:**
-- ✅ Configuration management
-- ✅ Data models
-- ✅ In-memory storage
-- ✅ File handling
-- ✅ FastAPI application with error handling
-- ✅ PDF processing service (pdf2image integration)
-- ✅ OpenAI Vision API integration
-- ✅ API endpoints (upload, status, history)
-- ✅ Background task processing
-- ✅ Docker configuration (Dockerfile, docker-compose.yml)
-
-**To Be Implemented:**
-- ⏳ Tests (unit and integration)
-- ⏳ Additional error handling and retry logic
-- ⏳ Performance optimizations
-
-See `PLAN.md` for detailed implementation roadmap.
-
-### Running in Development Mode
-
-```bash
-# Activate virtual environment
-source venv/bin/activate
-
-# Run with auto-reload
-uvicorn app.main:app --reload --log-level debug
-
-# Or use the built-in runner
-python -m app.main
-```
-
----
-
-## 📖 Additional Documentation
-
-- **CLAUDE.md** - Comprehensive project guide with architecture, patterns, and best practices
-- **PLAN.md** - Step-by-step implementation plan with time estimates
-- **requirements.md** - Original project requirements
-
----
-
-## 📝 License
-
-This is a technical assessment project.
-
----
-
-## 🤝 Support
-
-For issues or questions:
-1. Check the troubleshooting section above
-2. Review `CLAUDE.md` for detailed architecture information
-3. Check the API documentation at `/docs`
-
----
-
-**Happy coding! 🚀**
