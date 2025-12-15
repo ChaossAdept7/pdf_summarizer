@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # API URL for backend communication
+        # Use host.docker.internal for Docker Desktop or host IP for Linux
+        - VITE_API_URL=${VITE_API_URL:-http://host.docker.internal:8000}
+    container_name: pdf-summarizer-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      # Override API URL via environment variable
+      - VITE_API_URL=${VITE_API_URL:-http://host.docker.internal:8000}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - frontend-network
+
+networks:
+  frontend-network:
+    driver: bridge
+    name: pdf-summarizer-frontend-network
+
+# For connecting to external backend network (if needed)
+# networks:
+#   default:
+#     external:
+#       name: pdf-summarizer_default
